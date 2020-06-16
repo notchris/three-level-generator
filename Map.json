@@ -57,7 +57,7 @@
                          "value":1
                         }],
                  "rotation":0,
-                 "type":"Spawn",
+                 "type":"Entity",
                  "visible":true,
                  "width":0,
                  "x":150,
@@ -75,7 +75,7 @@
                          "value":3
                         }],
                  "rotation":0,
-                 "type":"Hole",
+                 "type":"Entity",
                  "visible":true,
                  "width":0,
                  "x":2100,
