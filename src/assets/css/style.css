@@ -1,0 +1,105 @@
+* {
+    box-sizing: border-box;
+    text-rendering: optimizeLegibility;
+    font-kerning: auto;
+    outline: 0 !important;
+}
+
+html {
+    font-family: sans-serif;
+}
+
+body {
+    margin: 0;
+    overflow: hidden;
+    font-size: 13px;
+}
+
+html, body, #app {
+    width: 100%;
+    height: 100%;
+}
+
+#info {
+    position: absolute;
+    top: 4px;
+    left: 80px;
+    z-index: 9999;
+    width: 200px;
+    height: 60px;
+    border: 2px solid black;
+    transform-origin: center center;
+    text-align: left;
+    font-size: 12px;
+    font-weight: bold;
+    padding: 4px;
+}
+
+#meta {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    z-index: 9999;
+    width: 100px;
+    height: 60px;
+    transform-origin: center center;
+    text-align: right;
+    font-size: 12px;
+    font-weight: bold;
+    padding: 4px;
+}
+
+#compass {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    z-index: 9999;
+    width: 60px;
+    height: 60px;
+    border: 2px solid black;
+    transform-origin: center center;
+    text-align: center;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+#compass .north {
+    position: absolute;
+    top: 2px;
+    left: 0;
+    text-align: center;
+    width: 100%;
+}
+#compass .south {
+    position: absolute;
+    bottom: 2px;
+    left: 0;
+    text-align: center;
+    width: 100%;
+}
+#compass .west {
+    position: absolute;
+    top: 50%;
+    left: 2px;
+    transform: translate(0, -50%);
+}
+#compass .east {
+    position: absolute;
+    top: 50%;
+    right: 2px;
+    transform: translate(0, -50%);
+}
+
+
+#app {
+    position: relative;
+}
+
+.renderer {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
