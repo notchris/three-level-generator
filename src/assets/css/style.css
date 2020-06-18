@@ -53,6 +53,13 @@ html, body, #app {
     font-size: 12px;
 }
 
+#stats {
+    position: absolute;
+    right: 2px;
+    top: 50px;
+    z-index: 9999;
+}
+
 #compass {
     position: absolute;
     top: 4px;

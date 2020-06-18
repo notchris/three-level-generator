@@ -1,5 +1,5 @@
 import {OBJLoader} from 'three/examples/jsm/loaders/OBJLoader';
-import Models from '../../Models.json';
+import Models from '../../data/Models.json';
 
 export default class ModelLoader {
     constructor (renderer) {

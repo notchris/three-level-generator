@@ -11,7 +11,9 @@ export default class BodyParser {
             world.addBody(body);
             body.position.copy(mesh.position);
             body.quaternion.copy(mesh.quaternion);
-
+            if (mesh.isModel) {
+                body.isModel = true;
+            }
             bodies.push(body);
         })
         return bodies;

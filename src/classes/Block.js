@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { ConvexGeometry } from 'three/examples/jsm/geometries/ConvexGeometry';
-import Blocks from '../../Blocks.json';
+import Blocks from '../../data/Blocks.json'
 
 export default class Block {
     constructor(group, id, data) {
