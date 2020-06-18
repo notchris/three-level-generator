@@ -49,6 +49,10 @@ html, body, #app {
     padding: 4px;
 }
 
+#meta button {
+    font-size: 12px;
+}
+
 #compass {
     position: absolute;
     top: 4px;

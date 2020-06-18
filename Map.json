@@ -5,7 +5,51 @@
          "draworder":"topdown",
          "id":7,
          "name":"Walls",
-         "objects":[],
+         "objects":[
+                {
+                 "height":660,
+                 "id":91,
+                 "name":"wall",
+                 "rotation":0,
+                 "type":"Wall",
+                 "visible":true,
+                 "width":30,
+                 "x":0,
+                 "y":840
+                }, 
+                {
+                 "height":660,
+                 "id":92,
+                 "name":"wall",
+                 "rotation":0,
+                 "type":"Wall",
+                 "visible":true,
+                 "width":30,
+                 "x":2370,
+                 "y":840
+                }, 
+                {
+                 "height":30,
+                 "id":93,
+                 "name":"wall",
+                 "rotation":0,
+                 "type":"Wall",
+                 "visible":true,
+                 "width":2340,
+                 "x":30,
+                 "y":840
+                }, 
+                {
+                 "height":30,
+                 "id":94,
+                 "name":"wall",
+                 "rotation":0,
+                 "type":"Wall",
+                 "visible":true,
+                 "width":2340,
+                 "x":30,
+                 "y":1470
+                }],
          "opacity":1,
          "type":"objectgroup",
          "visible":true,
@@ -18,7 +62,7 @@
          "name":"Paths",
          "objects":[
                 {
-                 "height":900,
+                 "height":660,
                  "id":13,
                  "name":"Path",
                  "properties":[
@@ -32,7 +76,7 @@
                  "visible":true,
                  "width":2400,
                  "x":0,
-                 "y":900
+                 "y":840
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -80,6 +124,18 @@
                  "width":0,
                  "x":2100,
                  "y":1200
+                }, 
+                {
+                 "height":0,
+                 "id":46,
+                 "name":"Sign",
+                 "point":true,
+                 "rotation":0,
+                 "type":"Entity",
+                 "visible":true,
+                 "width":0,
+                 "x":150,
+                 "y":990
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -94,21 +150,26 @@
          "objects":[
                 {
                  "height":0,
-                 "id":42,
-                 "name":"arch",
+                 "id":95,
+                 "name":"test",
                  "point":true,
                  "properties":[
                         {
+                         "name":"direction",
+                         "type":"string",
+                         "value":"e"
+                        }, 
+                        {
                          "name":"file",
                          "type":"string",
-                         "value":"arch_4_4.obj"
+                         "value":"star_5.obj"
                         }],
                  "rotation":0,
                  "type":"Model",
                  "visible":true,
                  "width":0,
-                 "x":1350,
-                 "y":1470
+                 "x":690,
+                 "y":1170
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -120,29 +181,7 @@
          "draworder":"topdown",
          "id":6,
          "name":"Blocks",
-         "objects":[
-                {
-                 "height":60,
-                 "id":43,
-                 "name":"TestBlock",
-                 "properties":[
-                        {
-                         "name":"direction",
-                         "type":"string",
-                         "value":"e"
-                        }, 
-                        {
-                         "name":"type",
-                         "type":"string",
-                         "value":"cube"
-                        }],
-                 "rotation":0,
-                 "type":"Block",
-                 "visible":true,
-                 "width":60,
-                 "x":510,
-                 "y":1020
-                }],
+         "objects":[],
          "opacity":1,
          "type":"objectgroup",
          "visible":true,
@@ -150,7 +189,7 @@
          "y":0
         }],
  "nextlayerid":9,
- "nextobjectid":46,
+ "nextobjectid":96,
  "orientation":"orthogonal",
  "properties":[
         {

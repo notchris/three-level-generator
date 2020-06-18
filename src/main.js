@@ -1,11 +1,15 @@
 import './assets/css/style.css';
 import * as THREE from "three";
+import * as CANNON from 'cannon-es';
 import OrbitControls from 'orbit-controls-es6';
 import InfiniteGridHelper from './classes/InfiniteGridHelper';
 import { Sky } from 'three/examples/jsm/objects/Sky';
 import Polygon from 'polygon';
 import Block from './classes/Block';
 import ModelLoader from './classes/ModelLoader';
+import BodyParser from './classes/BodyParser';
+import GolfBall from './classes/GolfBall';
+import debug from 'cannon-es-debugger'
 
 // JSON
 import Map from '../Map.json';
@@ -15,6 +19,8 @@ let fairway = new THREE.TextureLoader().load(require('./assets/textures/fairway.
 fairway.wrapS = fairway.wrapT = THREE.RepeatWrapping;
 fairway.repeat.set(1, 1);
 
+let fontLoader = new THREE.FontLoader();
+
 class Render {
   constructor (el) {
     this.el = document.querySelector('.renderer');
@@ -23,13 +29,25 @@ class Render {
     this.modelLoader = null;
     this.dir = new THREE.Vector3();
     this.sph = new THREE.Spherical();
+    this.spawn = new THREE.Vector3()
     this.group = new THREE.Group();
+    this.meshList = [];
+    this.bodyList = [];
+    this.pathList = [];
+
+    this.mouse = new THREE.Vector2();
+    this.raycaster = new THREE.Raycaster();
+    this.tempDir = new THREE.Vector3();
+    this.lastDirection = null;
+
+    this.debug = false;
     this.update = this.update.bind(this);
     this.init();
   }
 
   init () {
     /** Renderer */
+    this.clock = new THREE.Clock();
     this.renderer = new THREE.WebGLRenderer({
       antialias: true
     });
@@ -53,13 +71,16 @@ class Render {
 
     /** Camera */
     this.camera = new THREE.PerspectiveCamera(40, this.bbox.width / this.bbox.height, 1, 10000);
-    this.camera.position.set(0, 80, 40);
 
     /** Controls */
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.addEventListener('change', () => {
-      this.update();
+      this.setCompass();
     });
+
+    this.camera.position.set(40, 80, 40);
+    this.controls.target.set(40, 0, 40);
+    this.controls.update()
 
     /** Lights */
     this.scene.add(new THREE.AmbientLight(0x222222, 1));
@@ -102,6 +123,25 @@ class Render {
 
     /* Load Models */
     this.modelLoader = new ModelLoader(this);
+
+    /* Init physics world */
+    this.world = new CANNON.World();
+    this.world.gravity.set(0,-60,0);
+    this.world.broadphase = new CANNON.NaiveBroadphase()
+    this.world.solver.iterations = 10;
+
+    /* Set mousemove listener */
+    this.el.addEventListener('mousemove', (event) => {
+      this.mouse.set(
+          (event.clientX / window.innerWidth) * 2 - 1,
+          -(event.clientY / window.innerHeight) * 2 + 1
+      );
+    });
+    /* Set mousemove listener */
+    this.el.addEventListener('click', (event) => {
+      this.lastDirection = new THREE.Vector3().copy(this.tempDir);
+      this.ball.hit(this.lastDirection, 60);
+    });
 
   }
 
@@ -160,8 +200,11 @@ class Render {
     return material;
   }
 
-  parseMap (map) {
-    /** Info */
+  setCompass () {
+    document.querySelector('#compass').style.transform = `rotate(${THREE.Math.radToDeg(this.sph.theta) - 180}deg)`;
+  }
+
+  parseMeta (map) {
     console.log(map)
     let info = document.querySelector('#info');
     let title = map.properties.filter((p) => p.name === 'title')[0].value;
@@ -172,44 +215,29 @@ class Render {
       <div><span>Hole: ${hole}</span></div>
       <div><span>Par: ${par}</span></div>
     `
+  }
 
-    /** Bounds */
+  setBounds (map) {
     let edges = new THREE.EdgesGeometry(new THREE.PlaneBufferGeometry(map.width, map.height));
     let bounds = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xff0000 }));
     bounds.rotation.x = -Math.PI * 0.5;
     bounds.position.x += map.width / 2;
     bounds.position.z += map.height / 2;
-
     this.group.add(bounds);
+  }
 
-    /** Entities */
-    let entities = map.layers.filter((l) => l.name === 'Entities')[0].objects;
-
+  parseEntities (entities) {
     entities.forEach((entity) => {
       let mesh;
-      let y = 1;
-      let prop;
+      let props = {};
+      entity.properties = entity.properties || [];
+      entity.properties.forEach((p) => { props[p.name] = p.value; })
+
       switch (entity.name) {
         case 'Tee':
-          prop = entity.properties.filter((p) => p.name === 'position_y')[0];
-          if (prop) {
-            y = prop.value;
-          }
-          mesh = new THREE.Mesh(
-            new THREE.BoxBufferGeometry(1,1,1),
-            new THREE.MeshBasicMaterial({
-              color: 'limegreen'
-            })
-          )
-          this.group.add(mesh);
-          mesh.position.set(entity.x / 30, y, entity.y / 30);
-          mesh.geometry.translate(0, 0.5, 0);
+          this.spawn = new THREE.Vector3(entity.x / 30, props.position_y || 10, entity.y / 30)
           break;
         case 'Hole':
-          prop = entity.properties.filter((p) => p.name === 'position_y')[0];
-          if (prop) {
-            y = prop.value;
-          }
           mesh = new THREE.Mesh(
             new THREE.BoxBufferGeometry(1,1,1),
             new THREE.MeshBasicMaterial({
@@ -217,24 +245,36 @@ class Render {
             })
           )
           this.group.add(mesh);
-          mesh.position.set(entity.x / 30, y, entity.y / 30);
+          mesh.position.set(entity.x / 30, props.position_y || 1, entity.y / 30);
           mesh.geometry.translate(0, 0.5, 0);
+          break;
+        case 'Sign':
+          mesh = new THREE.Mesh(
+            new THREE.BufferGeometry().copy(this.modelLoader.models.filter((obj) => obj.name === 'sign.obj')[0].children[0].geometry),
+            new THREE.MeshPhongMaterial({ color: '#EEEEEE' })
+          )
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          this.group.add(mesh);
+          mesh.position.set(entity.x / 30, props.position_y || 1, entity.y / 30);
+          mesh.geometry.translate(0, 0.5, 0);
+          mesh.rotation.copy(new THREE.Euler(0, -Math.PI / 2, 0));
           break;
         default:
           break;
       }
     })
+  }
 
-    /** Paths */
-    let paths = map.layers.filter((l) => l.name === 'Paths')[0].objects;
+  parsePaths (paths) {
     paths.forEach((path) => {
-      let h = 1;
-      let prop_height = path.properties.filter((p) => p.name === 'height')[0];
-      if (prop_height) {
-        h = prop_height.value;
-      }
+
+      let props = {};
+      path.properties = path.properties || [];
+      path.properties.forEach((p) => { props[p.name] = p.value; })
+
+      let h = props.height || 1;
       let geometry = new THREE.BoxBufferGeometry(path.width / 30, h, path.height / 30);
-      geometry.translate(0, h/2, 0);
       let material = this.createShader((path.width / 30) / 4, (path.height / 30) / 4);
       let mesh = new THREE.Mesh(geometry, material);
       mesh.receiveShadow = true;
@@ -242,12 +282,14 @@ class Render {
       mesh.position.set(path.x / 30, 0, path.y / 30)
       mesh.position.x += (path.width / 30) / 2;
       mesh.position.z += (path.height / 30) / 2;
-
+      mesh.position.y += h/2;
       this.group.add(mesh);
+      this.meshList.push(mesh);
+      this.pathList.push(mesh)
     });
+  }
 
-    /** Blocks */
-    let blocks = map.layers.filter((l) => l.name === 'Blocks')[0].objects;
+  parseBlocks (blocks) {
     blocks.forEach((block) => {
       let type = 'cube';
       let direction = 'e';
@@ -283,10 +325,12 @@ class Render {
         default:
           break;
       }
+      this.meshList.push(b.object);
     });
 
-    /** Walls */
-    let walls = map.layers.filter((l) => l.name === 'Walls')[0].objects;
+  }
+
+  parseWalls (walls) {
     walls.forEach((wall) => {
       if (!wall.polygon) {
         let geometry = new THREE.BoxBufferGeometry(wall.width / 30, 2, wall.height / 30);
@@ -323,18 +367,26 @@ class Render {
         mesh.rotation.x += Math.PI * 0.5;
         mesh.position.set(wall.x / 30, 0, wall.y / 30)
         mesh.position.y += 2
+        this.meshList.push(mesh);
         //mesh.rotation.z -= Math.PI;
       }
     });
+  }
 
-    /** Models */
-    let models = map.layers.filter((l) => l.name === 'Models')[0].objects;
+  parseModels (models) {
     models.forEach((model) => {
-      // Type
+      // Properties
       let file = 'bush_1.obj';
+      let direction = 'e';
+
       let prop_file = model.properties.filter((p) => p.name === 'file')[0];
       if (prop_file) {
         file = prop_file.value;
+      }
+      // Direction
+      let prop_direction = model.properties.filter((p) => p.name === 'direction')[0];
+      if (prop_direction) {
+        direction = prop_direction.value;
       }
       let m = new THREE.Mesh(
         new THREE.BufferGeometry().copy(this.modelLoader.models.filter((obj) => obj.name === file)[0].children[0].geometry),
@@ -345,55 +397,160 @@ class Render {
       m.position.set(model.x / 30, 0, model.y / 30);
       m.position.y = 1;
       m.geometry.translate(0, 0.5, 0)
-      this.group.add(m);
-    });
 
-    /** All Models */
-    /*let modelGroup = new THREE.Group();
-    let i,m,temparray,chunk = 10;
-    for (i=0,m=this.modelLoader.models.length; i<m; i+=chunk) {
-        temparray = this.modelLoader.models.slice(i,i+chunk);
-        for (let t = 0; t < temparray.length; t += 1) {
-          let m = new THREE.Mesh(
-            new THREE.BufferGeometry().copy(temparray[t].children[0].geometry),
-            new THREE.MeshPhongMaterial({ color: `#${Math.floor(Math.random()*16777215).toString(16)}` })
-          )
-          m.castShadow = true;
-          m.receiveShadow = true;
-          m.position.set((t * 10) + 1, 0, i);
-          m.position.y = 1;
-          m.geometry.translate(0, 0.5, 0)
-          modelGroup.add(m);
-        }
+
+      switch (direction) {
+        case 'e':
+          m.rotation.copy(new THREE.Euler(0, Math.PI, 0))
+          break;
+        case 'w':
+          m.rotation.copy(new THREE.Euler(0, 0, 0))
+          break;
+        case 's':
+          m.rotation.copy(new THREE.Euler(0, Math.PI / 2, 0))
+          break;
+        case 'n':
+          m.rotation.copy(new THREE.Euler(0, -Math.PI / 2, 0))
+          break;
+        default:
+          break;
+      }
+
+
+      this.group.add(m);
+      this.meshList.push(m);
+    });
+  }
+
+  parseMap (map) {
+    /** Info */
+    this.parseMeta(map);
+
+    /** Bounds */
+    this.setBounds(map);
+
+    /** Entities */
+    let entities = map.layers.filter((l) => l.name === 'Entities')
+    if (entities.length) {
+      this.parseEntities(entities[0].objects)
     }
-    this.group.add(modelGroup);
-    modelGroup.translateZ(12);
-    */
+
+    /** Paths */
+    let paths = map.layers.filter((l) => l.name === 'Paths')
+    if (paths.length) {
+      this.parsePaths(paths[0].objects);
+    }
+
+    /** Blocks */
+    let blocks = map.layers.filter((l) => l.name === 'Blocks')
+    if (blocks.length) {
+      this.parseBlocks(blocks[0].objects);
+    }
+
+    /** Walls */
+    let walls = map.layers.filter((l) => l.name === 'Walls')
+    if (walls.length) {
+      this.parseWalls(walls[0].objects);
+    }
+
+    /** Models */
+    let models = map.layers.filter((l) => l.name === 'Models')
+    if (models.length) {
+      this.parseModels(models[0].objects);
+    }
 
     /** Add Group to Scene and Offset */
     this.scene.add(this.group);
-    this.group.translateX(-40);
-    this.group.translateZ(-40);
+    //this.group.translateX(-40);
+    //this.group.translateZ(-40);
 
-    /** Update */
-    window.setTimeout(() => {
-      this.update();
-    }, 500)
+    this.ball = new GolfBall(0.5, new THREE.Vector3(this.spawn.x, 10, this.spawn.z));
+    this.scene.add(this.ball.mesh);
+    this.world.addBody(this.ball.body);
+    this.bodyList = new BodyParser(this.world, this.meshList);
+
+    /** Physics debug */
+    document.querySelector('#debug').addEventListener('click', () => {
+      this.debug = !this.debug;
+    })
+    debug(this.scene, this.world.bodies, {
+      onUpdate: (body, mesh, shape) => {
+        if (this.debug) {
+          mesh.material.wireframe = true;
+        } else {
+          mesh.material.wireframe = false;
+        }
+      }
+    });
+
+    /** Start render */
+    this.update();
+
   }
+
+  rayCast () {
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+    let intersects = this.raycaster.intersectObjects(this.pathList);
+    if (intersects.length > 0) {
+        let v = new THREE.Vector3().copy(intersects[0].point).add(intersects[0].face.normal);
+        this.updateArrow(v);
+    }
+  }
+
+  updateArrow (target) {
+    if (this.arrowHelper) {
+        this.scene.remove(this.arrowHelper);
+        this.arrowHelper = null;
+    }
+    if (!this.ball || this.ball.moving) return;
+    
+    target.y = this.ball.mesh.position.y;
+    this.tempDir = new THREE.Vector3();
+    this.tempDir.subVectors(target, this.ball.mesh.position).normalize();
+    // Hide arrow if ball moving
+    this.arrowHelper = new THREE.ArrowHelper(
+        this.tempDir,
+        new THREE.Vector3().copy(this.ball.mesh.position),
+        4,
+        0xff0000,
+        0.5,
+        0.5
+    );
+    this.scene.add(this.arrowHelper);
+}
+
+  updatePhysics () {
+    if (this.clock) {
+        this.world.step(1.0 / 60.0, this.clock.elapsedTime, 3);
+        this.ball.mesh.position.copy(this.ball.body.position);
+        this.ball.mesh.quaternion.copy(this.ball.body.quaternion);
+
+        this.meshList.forEach((m, i) => {
+            m.position.copy(this.bodyList[i].position);
+            m.quaternion.copy(this.bodyList[i].quaternion);
+        });
+    }
+ }
 
   resize () {
     this.bbox = this.el.getBoundingClientRect();
     this.camera.aspect = this.bbox.width / this.bbox.height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(this.bbox.width, this.bbox.height);
-    this.update();
   }
+  
 
   update (timestamp) {
-    this.renderer.render(this.scene, this.camera);
+    requestAnimationFrame(() => this.update());
+    this.rayCast();
+    this.updatePhysics();
     this.camera.getWorldDirection(this.dir);
     this.sph.setFromVector3(this.dir);
-    document.querySelector('#compass').style.transform = `rotate(${THREE.Math.radToDeg(this.sph.theta) - 180}deg)`;
+    this.render();
+  }
+
+  render () {
+    this.renderer.render(this.scene, this.camera);
   }
 
 }
