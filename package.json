@@ -1,5 +1,5 @@
 {
-    "name": "notrenderer",
+    "name": "three-level-gen",
     "version": "1.0.4",
     "description": "...",
     "author": "notchris",
@@ -16,15 +16,9 @@
     "homepage": "",
     "dependencies": {
         "@babel/polyfill": "^7.2.5",
-        "cannon-es": "^0.10.0",
-        "cannon-es-debugger": "0.0.1-alpha.2",
         "orbit-controls-es6": "^2.0.1",
-        "polygon": "^1.0.2",
-        "stats.js": "^0.17.0",
         "three": "^0.116.1",
-        "three-shadertoy-material": "^1.3.9",
-        "three-to-cannon": "^3.0.0",
-        "uuid": "^8.0.0"
+        "three-js-csg-es6": "^73.0.0"
     },
     "devDependencies": {
         "@babel/cli": "^7.2.3",

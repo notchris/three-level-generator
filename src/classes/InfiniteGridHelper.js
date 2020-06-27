@@ -74,7 +74,7 @@ export default class InfiniteGridHelper {
         });
 
         this.mesh = new Mesh(geometry, material);
-        this.frustumCulled = false;
+        this.mesh.frustumCulled = false;
         this.scene.add(this.mesh);
         return this;
     }

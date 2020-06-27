@@ -58,6 +58,11 @@ html, body, #app {
     right: 2px;
     top: 50px;
     z-index: 9999;
+    width: 80px;
+    height: 43px;
+}
+#stats > div {
+    position: relative !important;
 }
 
 #compass {
@@ -105,6 +110,11 @@ html, body, #app {
 
 #app {
     position: relative;
+}
+
+#render {
+    width: 100%;
+    height: 100%;
 }
 
 .renderer {
