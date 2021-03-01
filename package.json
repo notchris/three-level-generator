@@ -17,7 +17,7 @@
     "dependencies": {
         "@babel/polyfill": "^7.2.5",
         "orbit-controls-es6": "^2.0.1",
-        "three": "^0.116.1",
+        "three": "^0.125.0",
         "three-js-csg-es6": "^73.0.0"
     },
     "devDependencies": {
